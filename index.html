@@ -273,6 +273,22 @@ img{max-width:100%;display:block}
 .tag-vis{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--ardosia-clara);color:var(--ardosia);margin-left:6px;white-space:nowrap}
 .lista-gerados .linha-item{cursor:default}
 .mini-btn{border:1.4px solid var(--borda);background:var(--papel);border-radius:10px;min-height:44px;padding:0 14px;font:700 15px 'Karla',sans-serif;color:var(--ardosia);cursor:pointer}
+.casal-h1{font-size:clamp(27px,6.6vw,36px);margin:8px 0 12px}
+.casal-modos{grid-template-columns:1fr}
+.casal-modos button{min-height:72px}
+.bdupla{margin-bottom:18px}
+.bdupla .topo{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:16.5px;margin-bottom:6px}
+.bdupla .lp{display:grid;grid-template-columns:minmax(52px,96px) 1fr 40px;align-items:center;gap:8px;margin:4px 0;font-size:14.5px}
+.bdupla .lp .quem{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tinta-suave);font-weight:700}
+.bdupla .lp b{text-align:right;font-weight:700}
+.bdupla .trilho{height:12px;border-radius:999px;background:var(--areia-escura);overflow:hidden}
+.bdupla .trilho i{display:block;height:100%;border-radius:999px;transition:width .9s ease}
+.tag-rel{font-size:12.5px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.tag-rel.choque{background:var(--alta-clara);color:var(--alta)}
+.tag-rel.espelho_alto{background:var(--argila-clara);color:#793C1F}
+.tag-rel.espelho{background:var(--baixa-clara);color:var(--baixa)}
+.casal-legenda i{border-radius:3px}
+.casal-ficha details summary{cursor:pointer;font-weight:700;color:var(--ardosia)}
 </style>
 <style>
 #vitrineRessignificar{margin:18px 0 22px}
@@ -764,6 +780,14 @@ body.ap-aberto{overflow:hidden}
   </a>
 </section>
 
+<section class="tela" id="tela-casal">
+  <button class="voltar" id="voltar-casal">← Voltar</button>
+  <div id="casal-conteudo"></div>
+</section>
+<section class="tela" id="tela-casal-resultado">
+  <div id="casal-dash"></div>
+  <div class="rodape"><span class="nome-rodape">Tatiana Barbosa da Silva · Terapeuta</span>Obrigada pela honestidade de vocês. O próximo passo é uma conversa.</div>
+</section>
 <section class="tela" id="tela-admin">
   <button class="voltar" id="voltar-site">← Voltar para o site</button>
 
@@ -796,11 +820,11 @@ body.ap-aberto{overflow:hidden}
     <div class="aba-conteudo" id="aba-codigos">
       <div class="cartao">
         <div class="campo">
-          <label for="cod-nome">Nome da cliente <span class="opc">(opcional)</span></label>
+          <label for="cod-nome" id="rot-cod-nome">Nome da cliente <span class="opc">(opcional)</span></label>
           <input id="cod-nome" type="text" placeholder="Ex.: Maria Souza">
         </div>
         <div class="campo">
-          <label for="cod-whats">WhatsApp da cliente <span class="opc">(opcional)</span></label>
+          <label for="cod-whats" id="rot-cod-whats">WhatsApp da cliente <span class="opc">(opcional)</span></label>
           <input id="cod-whats" type="tel" inputmode="tel" placeholder="(00) 00000-0000">
           <div class="dica">Com o telefone, o botão já abre a conversa dela com o link e a mensagem acolhedora prontos.</div>
         </div>
@@ -824,7 +848,9 @@ body.ap-aberto{overflow:hidden}
           <div class="alternar" id="alt-modo" role="radiogroup" aria-labelledby="rot-modo-cod">
             <button type="button" class="ativa" data-v="uni" role="radio" aria-checked="true">Individual<small>um código por pessoa</small></button>
             <button type="button" data-v="comp" role="radio" aria-checked="false">Mesmo código<small>um link para várias pessoas (campanha)</small></button>
+            <button type="button" data-v="casal" role="radio" aria-checked="false">Casal<small>duas pessoas e um resultado conjunto</small></button>
           </div>
+          <div class="dica" id="dica-casal" style="display:none">Um link para os dois. Quem abrir primeiro informa os nomes e escolhe se vão responder juntos, no mesmo aparelho, ou cada um no seu. Cada parte fica bloqueada quando termina, e o resultado do casal só aparece quando os dois concluírem. Depois disso, o mesmo link abre o resultado para sempre.</div>
         </div>
         <div id="bloco-comp" style="display:none">
           <div class="campo">
@@ -1192,7 +1218,7 @@ async function api(acao, dados, token){
     if(acao === ACOES.gerarCodigo){
       let codigo = dados.codigo;
       for(let t=0; t<6; t++){
-        const { error } = await c.from('travas_codigos').insert({ terapeuta_id:uid, codigo, cliente:dados.cliente||null, whatsapp:dados.whatsapp||null, mostrar_resultado: dados.mostrar !== false, urgencia: dados.urgencia !== false, ...(dados.compartilhado ? { compartilhado:true, usos_max:dados.usosMax } : {}) });
+        const { error } = await c.from('travas_codigos').insert({ terapeuta_id:uid, codigo, cliente:dados.cliente||null, whatsapp:dados.whatsapp||null, mostrar_resultado: dados.mostrar !== false, urgencia: dados.urgencia !== false, ...(dados.compartilhado ? { compartilhado:true, usos_max:dados.usosMax } : {}), ...(dados.casal ? { tipo:'casal' } : {}) });
         if(!error) return { ok:true, codigo };
         if(error.code === '23505'){ codigo = novoCodigo(); continue; }   // código repetido: sorteia outro
         return { ok:false, erro:String(error.message||error) };
@@ -1200,11 +1226,16 @@ async function api(acao, dados, token){
       return { ok:false, erro:'nao_gerou' };
     }
     if(acao === ACOES.listarCodigos){
-      const { data, error } = await c.from('travas_codigos').select('id,codigo,cliente,whatsapp,criado_em,usado,usado_por,usado_em,mostrar_resultado,compartilhado,usos_max,usos')
+      const { data, error } = await c.from('travas_codigos').select('id,codigo,cliente,whatsapp,criado_em,usado,usado_por,usado_em,mostrar_resultado,compartilhado,usos_max,usos,tipo')
         .eq('terapeuta_id', uid).order('criado_em',{ascending:false}).limit(300);
       if(error) return { ok:false, erro:String(error.message||error) };
       const acc = await compContarAcessos(c, uid, data);
-      return { ok:true, codigos:(data||[]).map(x => ({ compartilhado:x.compartilhado === true, usosMax:x.usos_max, usos:x.usos || 0, entraram:acc.entraram[x.id] || 0, concluidos:acc.concluidos[x.id] || 0, codigo:x.codigo, cliente:x.cliente||'', whatsapp:x.whatsapp||'', criadoEm:quando(x.criado_em),
+      const casais = {};
+      if((data || []).some(x => x.tipo === 'casal')){
+        const { data: cs } = await c.from('travas_casais').select('codigo_id,modo,concluido_em,travas_casal_slots(slot,nome,status)').eq('terapeuta_id', uid).limit(500);
+        (cs || []).forEach(k => { casais[k.codigo_id] = k; });
+      }
+      return { ok:true, codigos:(data||[]).map(x => ({ tipo:x.tipo || 'individual', casal:casais[x.id] || null, compartilhado:x.compartilhado === true, usosMax:x.usos_max, usos:x.usos || 0, entraram:acc.entraram[x.id] || 0, concluidos:acc.concluidos[x.id] || 0, codigo:x.codigo, cliente:x.cliente||'', whatsapp:x.whatsapp||'', criadoEm:quando(x.criado_em),
         usado:x.usado, mostrarResultado:x.mostrar_resultado !== false, usadoPor:x.usado_por||'', usadoEm:x.usado_em ? quando(x.usado_em) : '' })) };
     }
     if(acao === ACOES.listarRespostas){
@@ -1231,7 +1262,7 @@ async function validarCodigo(codigo){
   if(!modoLocal()){
     const r = await api(ACOES.validarCodigo,{codigo});
     if(r && r.ok === false && r.erro) return {ok:false, msg:'Não consegui verificar agora. Confira a sua internet e tente de novo.'};
-    if(r && (r.valido === true || r.ok === true)) return {ok:true, mostrar: r.mostrar_resultado !== false, urgencia: r.urgencia !== false, cliente: r.cliente || '', compartilhado: r.compartilhado === true, duracao: r.duracao_min || 30};
+    if(r && (r.valido === true || r.ok === true)) return {ok:true, tipo: r.tipo || 'individual', mostrar: r.mostrar_resultado !== false, urgencia: r.urgencia !== false, cliente: r.cliente || '', compartilhado: r.compartilhado === true, duracao: r.duracao_min || 30};
     return {ok:false, msg:(r && r.msg) || 'Esse código não está valendo. Ele já foi usado ou foi digitado diferente.'};
   }
   const lista = ler(CHAVE_CODIGOS, []);
@@ -1266,6 +1297,7 @@ $('#btn-entrar').addEventListener('click', async () => {
   b.disabled = true; b.textContent = 'Verificando o código...';
   const r = await validarCodigo(codigo);
   if(!r.ok){ b.disabled=false; b.textContent='Fazer o teste agora'; avisar('#aviso-codigo', r.msg); return; }
+  if(r.tipo === 'casal'){ b.textContent = 'Abrindo o teste do casal...'; await casalEntrar(codigo); b.disabled = false; b.textContent = 'Fazer o teste agora'; return; }
   estado.codigo = codigo;
   estado.mostrarResultado = r.mostrar !== false;
   estado.urgencia = r.urgencia !== false;
@@ -1757,6 +1789,7 @@ function desenharPergunta(){
 }
 function responder(valor, botao){
   estado.respostas[estado.indice] = valor;
+  if(estado.casal) casalSalvarProgresso();
   $$('#regua .nota').forEach(o=>o.classList.remove('escolhida'));
   botao.classList.add('escolhida');
   const rapido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1796,6 +1829,7 @@ function calcular(){
 }
 
 async function finalizar(){
+  if(estado.casal) return casalFinalizarParte();
   const r = calcular(); estado.resultado = r;
   const primeiro = estado.nome.split(' ')[0];
 
@@ -2058,6 +2092,7 @@ function mensagemConvite(primeiro, codigo, mostrar){
 }
 $('#btn-gerar').addEventListener('click', async ()=>{
   if(compModo()) return compGerar();
+  if(casalModo()) return casalGerar();
   const b = $('#btn-gerar');
   const qtd = Math.max(1, +$('#cod-qtd').value || 1);
   const nomeCli = qtd === 1 ? $('#cod-nome').value.trim() : '';
@@ -2141,7 +2176,7 @@ async function carregarCodigos(){
     if(r && Array.isArray(r.codigos)) lista = r.codigos; else if(Array.isArray(r)) lista = r;
   }
   if(!lista.length){ caixa.innerHTML='<div class="vazio">Nenhum código ainda. Gere o primeiro acima.</div>'; return; }
-  caixa.innerHTML = lista.map(c=> c.compartilhado ? compLinhaCodigo(c) : `
+  caixa.innerHTML = lista.map(c=> c.tipo === 'casal' ? casalLinhaCodigo(c) : c.compartilhado ? compLinhaCodigo(c) : `
     <div class="linha-item">
       <span class="esq">
         <span class="nome">${c.codigo}${c.cliente ? ' · ' + c.cliente : ''}<span class="tag-vis">${c.mostrarResultado === false ? 'só você vê' : 'cliente vê'}</span></span>
@@ -2149,7 +2184,7 @@ async function carregarCodigos(){
       </span>
       <span class="etiqueta ${c.usado?'usado':'livre'}">${c.usado?'usado':'disponível'}</span>
     </div>`).join('');
-  compLigarLista();
+  compLigarLista(); casalLigarLista();
 }
 
 /* ---- respostas ---- */
@@ -2542,6 +2577,568 @@ if(location.hash.toLowerCase() === '#tatiana') mostrarTela('#tela-admin');
 window.addEventListener('resize', ()=>{
   if($('#tela-resultado').classList.contains('ativa') && estado.resultado) desenharTeia($('#teia'), estado.resultado.linhas);
 });
+/* ============================================================================
+   TESTE DE CASAL: dois parceiros, duas vagas (slots) e um resultado conjunto
+   - O 1º acesso configura: o seu nome, telefone e e-mail, o nome do(a) parceiro(a) e o modo (juntos ou separados).
+   - Cada parte é salva e BLOQUEADA no banco (travas_casal_salvar). A ordem não importa.
+   - O resultado só existe quando as duas vagas estão "concluido"; depois disso o link vira chave de leitura.
+   ============================================================================ */
+const CASAL_CHAVE = CHAVE_CODIGOS + '_casal_';
+const CASAL_COR = [null, { linha:'#A8542B', fundo:'rgba(168,84,43,.20)' }, { linha:'#2C6E8A', fundo:'rgba(44,110,138,.20)' }];
+const CASAL_CHOQUE = 2.0;    // diferença de 2 pontos ou mais na mesma trava = as travas se chocam
+const CASAL_ESPELHO = 1.0;   // diferença de até 1 ponto = as travas se espelham
+const casal = { codigo:'', estado:null, slot:0, modo:'', nomes:{ 1:'', 2:'' }, teia:null };
+const casalEmail = v => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(v || '').trim());
+const casalDig = v => String(v || '').replace(/\D/g, '');
+
+/* ---- o que fica guardado neste aparelho (só as chaves de acesso de cada parte) ---- */
+function casalLocal(cod){ const l = ler(CASAL_CHAVE + cod, null); return (l && l.tokens) ? l : { tokens:{} }; }
+function casalGuardar(cod, mudar){ const l = casalLocal(cod); mudar(l); guardar(CASAL_CHAVE + cod, l); }
+function casalToken(cod, slot){ return casalLocal(cod).tokens[slot] || null; }
+function casalTokenQualquer(cod){ const t = casalLocal(cod).tokens; return t[1] || t[2] || null; }
+const casalProgKey = (cod, slot) => CASAL_CHAVE + cod + '_prog_' + slot;
+function casalSalvarProgresso(){ if(estado.casal) guardar(casalProgKey(casal.codigo, casal.slot), { indice:estado.indice, respostas:estado.respostas }); }
+
+function casalMostrar(html){
+  $('#casal-conteudo').innerHTML = html;
+  mostrarTela('#tela-casal'); window.scrollTo({ top:0, behavior:'auto' });
+}
+function casalErroHtml(msg){ return '<div class="aviso ver">' + escV(msg) + '</div>'; }
+function casalZapTerapeuta(texto){ return 'https://wa.me/' + CONFIG.whatsappNumero + (texto ? '?text=' + encodeURIComponent(texto) : ''); }
+
+/* ---- 1. ENTRADA: decide para onde a pessoa vai, a partir do estado das duas vagas ---- */
+async function casalEntrar(codigo){
+  casal.codigo = codigo;
+  const loc = casalLocal(codigo);
+  const e = await compRpc('travas_casal_estado', { p_codigo:codigo, p_token:casalTokenQualquer(codigo) });
+  if(!e || e.ok !== true){ avisar('#aviso-codigo', 'Não consegui abrir o teste agora. Confira a sua internet e tente de novo.'); return; }
+  casal.estado = e;
+  if(!e.existe) return casalTelaSetup();
+  casal.modo = e.modo; casal.nomes = { 1:e.p1.nome, 2:e.p2.nome };
+  if(e.concluido) return casalAbrirResultado();                               // acesso vitalício: pula o teste
+  const st = { 1:e.p1.status, 2:e.p2.status };
+  for(const s of [1, 2]) if(loc.tokens[s] && st[s] === 'em_andamento') return casalTelaComecar(s);   // retoma a parte deste aparelho
+  const feito = [1, 2].find(s => loc.tokens[s] && st[s] === 'concluido');
+  if(feito){
+    const outro = 3 - feito;
+    return (e.modo === 'juntos' && st[outro] === 'pendente') ? casalTelaVez(outro) : casalTelaEnviar(feito, st[outro]);
+  }
+  casalTelaQuem();
+}
+
+/* ---- 2. SETUP (primeiro acesso) ---- */
+function casalTelaSetup(){
+  casalMostrar(`
+    <span class="selo">Teste de Travas para Casal</span>
+    <h1 class="casal-h1">Vamos preparar o teste de vocês</h1>
+    <p>Cada um responde as suas 50 perguntas, sozinho(a) e com sinceridade. Quando os dois terminarem, aparece o mapa do casal: onde as travas de vocês se espelham e onde se chocam.</p>
+    <div class="cartao">
+      <div class="campo"><label for="cs-nome1">O seu nome completo</label><input id="cs-nome1" type="text" autocomplete="name" placeholder="Nome e sobrenome"></div>
+      <div class="campo"><label for="cs-tel1">O seu WhatsApp (com DDD)</label><input id="cs-tel1" type="tel" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000"></div>
+      <div class="campo"><label for="cs-email1">O seu e-mail</label><input id="cs-email1" type="email" inputmode="email" autocomplete="email" placeholder="voce@email.com"></div>
+      <div class="campo"><label for="cs-nome2">O nome do(a) seu(sua) parceiro(a)</label><input id="cs-nome2" type="text" autocomplete="off" placeholder="Como ele(a) se chama">
+        <div class="dica">Ele(a) vai informar o próprio telefone e e-mail na vez dele(a).</div></div>
+      <div class="campo">
+        <label id="cs-rot-modo">Como vocês vão responder?</label>
+        <div class="alternar casal-modos" id="cs-modo" role="radiogroup" aria-labelledby="cs-rot-modo">
+          <button type="button" data-v="juntos" role="radio" aria-checked="false">Juntos, no mesmo aparelho<small>Vamos responder agora, um depois do outro, neste aparelho.</small></button>
+          <button type="button" data-v="separados" role="radio" aria-checked="false">Separados, cada um no seu<small>Vou responder agora e enviar o link para o(a) meu(minha) parceiro(a) responder depois, no aparelho dele(a).</small></button>
+        </div>
+      </div>
+      <div class="campo campo-check"><label class="check" for="cs-consent"><input id="cs-consent" type="checkbox">
+        <span>Concordo que as minhas respostas sejam enviadas para a ${escV(PRIM_TER)}, que vai usá-las para nos atender e mantê-las em sigilo.</span></label></div>
+      <div class="aviso" id="cs-aviso"></div>
+      <button class="btn btn-primario" id="cs-ir">Começar a minha parte</button>
+    </div>`);
+  mascaraTelefone($('#cs-tel1'));
+  let modo = '';
+  $$('#cs-modo button').forEach(b => b.addEventListener('click', () => {
+    modo = b.dataset.v;
+    $$('#cs-modo button').forEach(x => { const on = x === b; x.classList.toggle('ativa', on); x.setAttribute('aria-checked', on ? 'true' : 'false'); });
+  }));
+  $('#cs-ir').addEventListener('click', async () => {
+    const n1 = $('#cs-nome1').value.trim().replace(/\s+/g, ' '), t1 = $('#cs-tel1').value, e1 = $('#cs-email1').value.trim(), n2 = $('#cs-nome2').value.trim().replace(/\s+/g, ' ');
+    const erro = n1.split(' ').length < 2 || n1.length < 5 ? 'Escreva o seu nome completo (nome e sobrenome).'
+      : casalDig(t1).length < 10 ? 'Escreva o seu WhatsApp com DDD.'
+      : !casalEmail(e1) ? 'Escreva um e-mail válido.'
+      : n2.length < 2 ? 'Escreva o nome do(a) seu(sua) parceiro(a).'
+      : !modo ? 'Escolha como vocês vão responder.'
+      : !$('#cs-consent').checked ? 'Para continuar, marque que você concorda com o envio.' : '';
+    if(erro) return avisar('#cs-aviso', erro);
+    const b = $('#cs-ir'); b.disabled = true; b.textContent = 'Preparando...';
+    const r = await compRpc('travas_casal_criar', { p_codigo:casal.codigo, p_nome1:n1, p_tel1:t1, p_email1:e1, p_nome2:n2, p_modo:modo, p_consent:true });
+    if(!r || r.ok !== true){
+      b.disabled = false; b.textContent = 'Começar a minha parte';
+      if(r && r.erro === 'ja_iniciado') return casalEntrar(casal.codigo);      // o(a) parceiro(a) configurou primeiro
+      return avisar('#cs-aviso', (r && r.msg) || 'Não consegui salvar agora. Confira a sua internet e tente de novo.');
+    }
+    casalGuardar(casal.codigo, l => { l.tokens[1] = r.token; });
+    casal.modo = modo; casal.nomes = { 1:r.p1, 2:r.p2 };
+    casalTelaComecar(1);
+  });
+}
+
+/* ---- 3. QUEM VAI RESPONDER (quem chega pelo link sem ter feito a parte) ---- */
+function casalTelaQuem(){
+  const e = casal.estado, st = { 1:e.p1.status, 2:e.p2.status }, nm = casal.nomes;
+  const pend = [1, 2].filter(s => st[s] === 'pendente');
+  let html = '<span class="selo">Teste de Travas para Casal</span>';
+  if(pend.length === 1){
+    const s = pend[0], o = 3 - s;
+    html += `<h1 class="casal-h1">Olá, ${escV(nm[s])}!</h1>`
+      + (st[o] === 'concluido'
+        ? `<p><b>${escV(nm[o])}</b> já finalizou a parte dele(a), e ela está bloqueada. Agora falta só a sua.</p>`
+        : `<p><b>${escV(nm[o])}</b> está respondendo em outro aparelho. Você pode fazer a sua parte agora: a ordem não importa.</p>`)
+      + `<button class="btn btn-primario" data-casal-slot="${s}">Clique aqui para iniciar a sua parte</button>`
+      + `<p class="nota-rodape">Não é ${escV(nm[s])}? Este link é do teste de ${escV(nm[1])} e ${escV(nm[2])}. <a href="${casalZapTerapeuta()}" target="_blank" rel="noopener">Fale com a ${escV(PRIM_TER)}</a>.</p>`;
+  }else if(pend.length === 2){
+    html += `<h1 class="casal-h1">Quem vai responder agora?</h1><p>Este é o teste de <b>${escV(nm[1])}</b> e <b>${escV(nm[2])}</b>. Cada um faz a sua parte uma única vez.</p>`
+      + [1, 2].map(s => `<button class="btn btn-primario" data-casal-slot="${s}">Sou ${escV(nm[s])}, quero começar</button>`).join('');
+  }else{
+    html += `<h1 class="casal-h1">O teste de vocês está em andamento</h1>
+      <p>${[1, 2].map(s => `<b>${escV(nm[s])}</b>: ${st[s] === 'concluido' ? 'parte concluída ✔' : 'respondendo em outro aparelho'}`).join('<br>')}</p>
+      <p>Quando os dois terminarem, este mesmo link abre o resultado. Se alguém começou e não conseguiu terminar (trocou de aparelho ou limpou o navegador), peça para a ${escV(PRIM_TER)} liberar a parte dele(a).</p>
+      <button class="btn btn-contorno" id="casal-recarregar">Já terminamos: ver o resultado</button>
+      <a class="btn btn-zap" href="${casalZapTerapeuta()}" target="_blank" rel="noopener"><span class="duas">Falar com a ${escV(PRIM_TER)}<small>pelo WhatsApp</small></span></a>`;
+  }
+  casalMostrar(html);
+  $$('[data-casal-slot]').forEach(b => b.addEventListener('click', () => casalTelaDados(+b.dataset.casalSlot)));
+  const rc = $('#casal-recarregar'); if(rc) rc.addEventListener('click', () => casalEntrar(casal.codigo));
+}
+
+/* ---- 4. DADOS DE QUEM VAI RESPONDER (o 2º parceiro, ou qualquer um que chegue com a vaga pendente) ---- */
+function casalTelaDados(slot){
+  const nm = casal.nomes[slot] || '';
+  casalMostrar(`
+    <span class="selo">A sua parte</span>
+    <h1 class="casal-h1">${escV(nm)}, antes de começar</h1>
+    <p>Precisamos do seu nome completo e de um contato. Eles também servem para abrir o resultado de vocês em outro aparelho.</p>
+    <div class="cartao">
+      <div class="campo"><label for="cd-nome">O seu nome completo</label><input id="cd-nome" type="text" autocomplete="name" value="${escV(nm)}" placeholder="Nome e sobrenome"></div>
+      <div class="campo"><label for="cd-tel">O seu WhatsApp (com DDD)</label><input id="cd-tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000"></div>
+      <div class="campo"><label for="cd-email">O seu e-mail</label><input id="cd-email" type="email" inputmode="email" autocomplete="email" placeholder="voce@email.com"></div>
+      <div class="campo campo-check"><label class="check" for="cd-consent"><input id="cd-consent" type="checkbox">
+        <span>Concordo que as minhas respostas sejam enviadas para a ${escV(PRIM_TER)}, que vai usá-las para nos atender e mantê-las em sigilo.</span></label></div>
+      <div class="aviso" id="cd-aviso"></div>
+      <button class="btn btn-primario" id="cd-ir">Continuar</button>
+    </div>`);
+  mascaraTelefone($('#cd-tel'));
+  $('#cd-ir').addEventListener('click', async () => {
+    const n = $('#cd-nome').value.trim().replace(/\s+/g, ' '), t = $('#cd-tel').value, em = $('#cd-email').value.trim();
+    const erro = n.split(' ').length < 2 || n.length < 5 ? 'Escreva o seu nome completo (nome e sobrenome).'
+      : casalDig(t).length < 10 ? 'Escreva o seu WhatsApp com DDD.'
+      : !casalEmail(em) ? 'Escreva um e-mail válido.'
+      : !$('#cd-consent').checked ? 'Para continuar, marque que você concorda com o envio.' : '';
+    if(erro) return avisar('#cd-aviso', erro);
+    const b = $('#cd-ir'); b.disabled = true; b.textContent = 'Preparando...';
+    const r = await compRpc('travas_casal_iniciar', { p_codigo:casal.codigo, p_slot:slot, p_nome:n, p_tel:t, p_email:em, p_consent:true });
+    if(!r || r.ok !== true){
+      b.disabled = false; b.textContent = 'Continuar';
+      if(r && (r.erro === 'concluido' || r.erro === 'ocupado')) avisar('#cd-aviso', r.msg);
+      else avisar('#cd-aviso', (r && r.msg) || 'Não consegui salvar agora. Confira a sua internet e tente de novo.');
+      return;
+    }
+    casalGuardar(casal.codigo, l => { l.tokens[slot] = r.token; });
+    casal.nomes[slot] = n.split(' ')[0];
+    casalTelaComecar(slot);
+  });
+}
+
+/* ---- 5. ORIENTAÇÃO CURTA + AS 50 PERGUNTAS (reaproveita a tela do teste individual) ---- */
+function casalTelaComecar(slot){
+  const prog = ler(casalProgKey(casal.codigo, slot), null);
+  const temProg = prog && Array.isArray(prog.respostas) && prog.respostas.length === PERGUNTAS.length && prog.respostas.some(v => v);
+  const nm = casal.nomes[slot], outro = casal.nomes[3 - slot];
+  casalMostrar(`
+    <span class="selo">Vez de ${escV(nm)}</span>
+    <h1 class="casal-h1">${escV(nm)}, agora são as suas 50 perguntas</h1>
+    <div class="como-responder"><ul>
+      <li><b>Responda sozinho(a), sem combinar com ${escV(outro)}.</b> O valor do mapa do casal está justamente em ver como cada um está.</li>
+      <li><b>Pense em HOJE</b>, em como você está neste momento da sua vida.</li>
+      <li><b>Escala de 1 a 10:</b> 1 é “não representa nada para mim” e 10 é “me descreve por completo”.</li>
+      <li>Leva de 10 a 15 minutos. Se a página fechar, ao abrir o link de novo neste aparelho você continua de onde parou.</li>
+    </ul></div>
+    <button class="btn btn-primario" id="cc-ir">${temProg ? 'Continuar de onde parei' : 'Começar as 50 perguntas'}</button>`);
+  $('#cc-ir').addEventListener('click', () => {
+    casal.slot = slot; estado.casal = true; estado.nome = nm; estado.inicio = Date.now();
+    estado.respostas = temProg ? prog.respostas.slice() : new Array(PERGUNTAS.length).fill(null);
+    const vazia = temProg ? estado.respostas.findIndex(v => !v) : 0;
+    estado.indice = vazia < 0 ? PERGUNTAS.length - 1 : vazia;               // volta na 1ª pergunta ainda sem resposta
+    mostrarTela('#tela-teste'); desenharPergunta(); window.scrollTo({ top:0, behavior:'auto' });
+  });
+}
+
+/* ---- 6. FIM DE UMA PARTE: salva, bloqueia a vaga e decide a próxima tela ---- */
+async function casalFinalizarParte(){
+  const r = calcular(), slot = casal.slot, tk = casalToken(casal.codigo, slot);
+  const dados = { tipo:'casal', codigo:casal.codigo, slot, nome:casal.nomes[slot], data:hoje(),
+    duracaoMin: estado.inicio ? Math.round((Date.now() - estado.inicio) / 60000) : null,
+    travas: r.linhas.map(l => ({ id:l.id, nome:l.nome, nota:l.nota })), geral:r.geral,
+    respostas: PERGUNTAS.map((p, i) => ({ n:i + 1, pergunta:p.q, trava:p.t, valor:estado.respostas[i] || 1 })) };
+  casalMostrar('<div class="carregando">Salvando as suas respostas...</div>');
+  const res = await compRpc('travas_casal_salvar', { p_codigo:casal.codigo, p_slot:slot, p_token:tk, p_dados:dados });
+  const jaSalvo = res && res.erro === 'concluido';                             // a resposta anterior chegou, mas a confirmação se perdeu
+  if(!res || (res.ok !== true && !jaSalvo)){
+    casalMostrar(`<h1 class="casal-h1">Quase lá</h1>${casalErroHtml((res && res.msg) || 'Não consegui salvar as suas respostas agora. Elas continuam guardadas neste aparelho.')}
+      <button class="btn btn-primario" id="cf-de-novo">Tentar salvar de novo</button>`);
+    $('#cf-de-novo').addEventListener('click', casalFinalizarParte);
+    return;
+  }
+  try{ localStorage.removeItem(casalProgKey(casal.codigo, slot)); }catch(e){}
+  estado.casal = false;
+  if(res.ambos) return casalAbrirResultado();
+  const e = await compRpc('travas_casal_estado', { p_codigo:casal.codigo, p_token:tk });
+  if(e && e.ok === true && e.existe){ casal.estado = e; if(e.concluido) return casalAbrirResultado(); }
+  const outro = 3 - slot, stO = (e && e.ok === true && e.existe) ? e['p' + outro].status : 'pendente';
+  if(casal.modo === 'juntos' && stO === 'pendente') casalTelaVez(outro); else casalTelaEnviar(slot, stO);
+}
+
+/* Fluxo A (juntos): passa o aparelho */
+function casalTelaVez(outro){
+  const nm = casal.nomes[outro];
+  casalMostrar(`
+    <span class="selo">Parte concluída ✔</span>
+    <h1 class="casal-h1">Suas respostas foram salvas!</h1>
+    <p>Agora é a vez de <b>${escV(nm)}</b>. Entregue o aparelho.</p>
+    <p class="nota-rodape">O resultado só aparece quando os dois terminarem.</p>
+    <button class="btn btn-primario" id="cv-ir">Sou ${escV(nm)}, quero começar</button>`);
+  $('#cv-ir').addEventListener('click', () => casalTelaDados(outro));
+}
+
+/* Fluxo B (separados): envia o link para o(a) parceiro(a) */
+function casalMensagemParceiro(meu, outro){
+  return [
+    'Oi, ' + outro + '! Já fiz a minha parte do Teste de Travas Mentais para Casal que a ' + PRIM_TER + ' nos enviou.',
+    '',
+    'Agora falta a sua. Toque no link abaixo; o código já vai preenchido:',
+    linkDoTeste(casal.codigo),
+    '',
+    'Se o link não abrir direto, o código é: *' + casal.codigo + '*',
+    '',
+    'São 50 perguntas, de 10 a 15 minutos. Responda com sinceridade, pensando em como você está HOJE. Quando você terminar, o resultado de nós dois aparece na hora.'
+  ].join('\n');
+}
+function casalTelaEnviar(meu, statusOutro){
+  const outro = 3 - meu, nmO = casal.nomes[outro], msg = casalMensagemParceiro(casal.nomes[meu], nmO);
+  casalMostrar(`
+    <span class="selo">Parte concluída ✔</span>
+    <h1 class="casal-h1">Sua parte está concluída!</h1>
+    <p>${statusOutro === 'em_andamento'
+      ? `<b>${escV(nmO)}</b> já começou a parte dele(a). Se ainda não recebeu o link, envie abaixo.`
+      : `Envie o link abaixo para <b>${escV(nmO)}</b> fazer a parte dele(a).`} Quando ${escV(nmO)} terminar, o resultado de vocês aparece na tela dele(a), e este mesmo link abre o resultado aqui também.</p>
+    <a class="btn btn-zap" id="ce-zap" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">
+      <span class="duas">Enviar o link para ${escV(nmO)}<small>pelo WhatsApp, com a mensagem pronta</small></span></a>
+    <button class="btn btn-contorno" id="ce-copiar">Copiar o link</button>
+    <button class="btn btn-contorno" id="ce-ver">${escV(nmO)} já terminou? Ver o resultado</button>`);
+  const ref = document.querySelector('#btn-zap-resultado svg'); if(ref) $('#ce-zap').insertAdjacentHTML('afterbegin', ref.outerHTML);
+  $('#ce-copiar').addEventListener('click', async e => {
+    try{ await navigator.clipboard.writeText(linkDoTeste(casal.codigo)); e.target.textContent = 'Link copiado!'; }catch(err){ e.target.textContent = 'Não consegui copiar'; }
+    setTimeout(() => { e.target.textContent = 'Copiar o link'; }, 2000);
+  });
+  $('#ce-ver').addEventListener('click', async e => {
+    e.target.disabled = true; e.target.textContent = 'Verificando...';
+    const st = await compRpc('travas_casal_estado', { p_codigo:casal.codigo, p_token:casalToken(casal.codigo, meu) });
+    if(st && st.ok === true && st.concluido){ casal.estado = st; return casalAbrirResultado(); }
+    e.target.disabled = false; e.target.textContent = nmO + ' ainda não terminou. Verificar de novo';
+  });
+}
+
+/* ---- 7. RESULTADO (chave de leitura: o aparelho que respondeu, ou o e-mail/WhatsApp de um dos dois) ---- */
+async function casalAbrirResultado(digitado){
+  const tk = casalTokenQualquer(casal.codigo), salvo = casalLocal(casal.codigo).contato;
+  const contato = digitado || salvo || null;
+  if(!tk && !contato) return casalTelaAcesso('');
+  casalMostrar('<div class="carregando">Abrindo o resultado de vocês...</div>');
+  const r = await compRpc('travas_casal_ler', { p_codigo:casal.codigo, p_token:tk, p_contato:contato });
+  if(r && r.ok === true){
+    if(contato && !tk) casalGuardar(casal.codigo, l => { l.contato = contato; });   // próximas visitas neste aparelho abrem direto
+    return casalMostrarResultado(r);
+  }
+  if(r && r.erro === 'incompleto') return casalEntrar(casal.codigo);
+  if(salvo && !digitado) casalGuardar(casal.codigo, l => { delete l.contato; });
+  casalTelaAcesso((r && r.msg) || 'Não consegui abrir agora. Confira a sua internet e tente de novo.');
+}
+function casalTelaAcesso(msg){
+  casalMostrar(`
+    <span class="selo">Teste concluído</span>
+    <h1 class="casal-h1">O resultado de vocês está pronto</h1>
+    <p>Para abrir neste aparelho, digite o e-mail ou o WhatsApp que um de vocês informou no teste.</p>
+    <div class="cartao">
+      <div class="campo"><label for="ca-contato">E-mail ou WhatsApp</label><input id="ca-contato" type="text" autocomplete="email" placeholder="voce@email.com ou (00) 00000-0000"></div>
+      ${msg ? casalErroHtml(msg) : ''}
+      <button class="btn btn-primario" id="ca-ir">Ver o resultado</button>
+    </div>`);
+  const ir = () => { const v = $('#ca-contato').value.trim(); if(v.length >= 6) casalAbrirResultado(v); };
+  $('#ca-ir').addEventListener('click', ir);
+  $('#ca-contato').addEventListener('keydown', e => { if(e.key === 'Enter') ir(); });
+}
+
+/* ---- 8. O CÁLCULO CONJUNTO ---- */
+/* Aceita, para cada parceiro, as 50 respostas (números de 1 a 10, ou {valor}) OU a lista de notas por trava ({id, nota}). */
+function casalNotas(x){
+  const out = {};
+  const ehRespostas = Array.isArray(x) && x.length === PERGUNTAS.length && x.every(v => typeof v === 'number' || v === null || (v && 'valor' in v));
+  if(ehRespostas){
+    const soma = {}; TRAVAS.forEach(t => soma[t.id] = { s:0, n:0 });
+    PERGUNTAS.forEach((p, i) => { const v = x[i], val = typeof v === 'number' ? v : (v && +v.valor) || 1; soma[p.t].s += val; soma[p.t].n++; });
+    TRAVAS.forEach(t => { out[t.id] = +(soma[t.id].s / soma[t.id].n).toFixed(1); });
+  }else{
+    (x || []).forEach(l => { const t = TRAVAS.find(t => t.id === l.id) || TRAVAS.find(t => t.nome === nomeAtualTrava(l.nome)); if(t) out[t.id] = +l.nota; });
+  }
+  TRAVAS.forEach(t => { if(!(out[t.id] >= 1)) out[t.id] = 1; });
+  return out;
+}
+function calcularCasal(respostasP1, respostasP2){
+  const a = casalNotas(respostasP1), b = casalNotas(respostasP2);
+  const linhas = TRAVAS.map(t => {
+    const n1 = a[t.id], n2 = b[t.id], dif = +Math.abs(n1 - n2).toFixed(1), nv1 = nivelDe(n1), nv2 = nivelDe(n2);
+    const relacao = dif >= CASAL_CHOQUE ? 'choque' : (nv1 === 'alta' && nv2 === 'alta') ? 'espelho_alto' : dif <= CASAL_ESPELHO ? 'espelho' : 'neutro';
+    return { id:t.id, nome:t.nome, curto:t.curto, n1, n2, nivel1:nv1, nivel2:nv2, dif, media:+((n1 + n2) / 2).toFixed(1), relacao };
+  });
+  return {
+    linhas,                                    // na ordem de TRAVAS = a ordem dos eixos do radar
+    serie1: linhas.map(l => l.n1), serie2: linhas.map(l => l.n2),
+    choques: linhas.filter(l => l.relacao === 'choque').sort((x, y) => y.dif - x.dif),
+    altasJuntos: linhas.filter(l => l.relacao === 'espelho_alto').sort((x, y) => y.media - x.media),
+    espelhos: linhas.filter(l => l.relacao === 'espelho' || l.relacao === 'espelho_alto'),
+    altas1: linhas.filter(l => l.nivel1 === 'alta').sort((x, y) => y.n1 - x.n1),
+    altas2: linhas.filter(l => l.nivel2 === 'alta').sort((x, y) => y.n2 - x.n2)
+  };
+}
+const CASAL_REL = { choque:'se chocam', espelho_alto:'altas nos dois', espelho:'se espelham', neutro:'' };
+
+/* ---- 9. RADAR COM DUAS CAMADAS ---- */
+function desenharTeiaDupla(canvas, eixos, series){
+  const dpr = window.devicePixelRatio || 1;
+  const lado = Math.max(280, Math.min(canvas.parentElement.clientWidth - 8, 560));
+  canvas.style.width = lado + 'px'; canvas.style.height = lado + 'px';
+  canvas.width = lado * dpr; canvas.height = lado * dpr;
+  const c = canvas.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, lado, lado);
+  const fonteRotulo = '700 ' + Math.max(10, Math.round(lado * 0.028)) + 'px Karla, sans-serif';
+  c.font = fonteRotulo;
+  let maior = 0;
+  eixos.forEach(l => { const p = l.curto.split(' '); const larg = Math.max(...p.map(x => c.measureText(x).width), c.measureText('10,0 · 10,0').width * 0.92); if(larg > maior) maior = larg; });
+  const cx = lado / 2, cy = lado / 2, folga = 14, n = eixos.length;
+  const raio = Math.max(lado * 0.20, Math.min(lado * 0.30, lado / 2 - folga - maior - 10));
+  const ponto = (i, f) => { const a = (Math.PI * 2 * i / n) - Math.PI / 2; return [cx + Math.cos(a) * raio * f, cy + Math.sin(a) * raio * f]; };
+  for(let anel = 1; anel <= 5; anel++){
+    c.beginPath(); for(let i = 0; i < n; i++){ const [x, y] = ponto(i, anel / 5); i ? c.lineTo(x, y) : c.moveTo(x, y); }
+    c.closePath(); c.strokeStyle = anel === 5 ? '#DDCFC8' : '#EEDFD7'; c.lineWidth = 1; c.stroke();
+  }
+  for(let i = 0; i < n; i++){ const [x, y] = ponto(i, 1); c.beginPath(); c.moveTo(cx, cy); c.lineTo(x, y); c.strokeStyle = '#EEDFD7'; c.lineWidth = 1; c.stroke(); }
+  series.forEach(s => {                                                          // as duas camadas, translúcidas: onde se sobrepõem, a cor se mistura
+    c.beginPath(); s.valores.forEach((v, i) => { const [x, y] = ponto(i, Math.max(v, 1) / 10); i ? c.lineTo(x, y) : c.moveTo(x, y); });
+    c.closePath(); c.fillStyle = s.fundo; c.fill(); c.strokeStyle = s.linha; c.lineWidth = 2.4; c.setLineDash(s.tracejado ? [7, 5] : []); c.stroke(); c.setLineDash([]);
+  });
+  series.forEach(s => s.valores.forEach((v, i) => {
+    const [x, y] = ponto(i, Math.max(v, 1) / 10);
+    c.beginPath(); c.arc(x, y, 5, 0, Math.PI * 2); c.fillStyle = s.linha; c.fill(); c.strokeStyle = '#FDFBFA'; c.lineWidth = 2; c.stroke();
+  }));
+  eixos.forEach((l, i) => {
+    const a = (Math.PI * 2 * i / n) - Math.PI / 2, x = cx + Math.cos(a) * (raio + folga), y = cy + Math.sin(a) * (raio + folga);
+    c.textAlign = Math.abs(Math.cos(a)) < 0.3 ? 'center' : (Math.cos(a) > 0 ? 'left' : 'right'); c.textBaseline = 'middle';
+    const partes = l.curto.split(' '), duas = partes.length > 1;
+    c.fillStyle = '#401F0D'; c.font = fonteRotulo;
+    if(duas){ c.fillText(partes[0], x, y - 9); c.fillText(partes.slice(1).join(' '), x, y + 9); } else c.fillText(l.curto, x, y);
+    c.font = '700 ' + Math.max(10, Math.round(lado * 0.026)) + 'px Karla, sans-serif';
+    const yv = y + (duas ? 26 : 17), t1 = num(series[0].valores[i]), sep = ' · ', t2 = num(series[1].valores[i]);
+    const w1 = c.measureText(t1).width, ws = c.measureText(sep).width, wt = w1 + ws + c.measureText(t2).width;
+    const x0 = c.textAlign === 'center' ? x - wt / 2 : c.textAlign === 'right' ? x - wt : x;
+    c.textAlign = 'left';
+    c.fillStyle = series[0].linha; c.fillText(t1, x0, yv);
+    c.fillStyle = '#897469'; c.fillText(sep, x0 + w1, yv);
+    c.fillStyle = series[1].linha; c.fillText(t2, x0 + w1 + ws, yv);
+  });
+}
+function casalDesenharTeia(){
+  const t = casal.teia; if(!t || !t.canvas.isConnected || !t.canvas.offsetParent) return;
+  desenharTeiaDupla(t.canvas, t.calc.linhas, [
+    { nome:t.n1, valores:t.calc.serie1, linha:CASAL_COR[1].linha, fundo:CASAL_COR[1].fundo },
+    { nome:t.n2, valores:t.calc.serie2, linha:CASAL_COR[2].linha, fundo:CASAL_COR[2].fundo, tracejado:true }
+  ]);
+}
+window.addEventListener('resize', () => { clearTimeout(casalDesenharTeia.t); casalDesenharTeia.t = setTimeout(casalDesenharTeia, 150); });
+
+/* ---- 10. O PAINEL DE RESULTADO (o mesmo para o casal e para a terapeuta) ---- */
+function casalListaNomes(ls){ const n = ls.map(l => l.nome); return n.length <= 1 ? (n[0] || '') : n.slice(0, -1).join(', ') + ' e ' + n[n.length - 1]; }
+function casalHtmlResultado(p1, p2, calc, modo){
+  const a = escV(p1), b = escV(p2), ord = calc.linhas.slice().sort((x, y) => Math.max(y.n1, y.n2) - Math.max(x.n1, x.n2) || y.media - x.media);
+  const blocoChoque = calc.choques.length
+    ? `<p><b>Onde vocês se chocam:</b> ${calc.choques.map(l => `${escV(l.nome)} (${a} ${num(l.n1)}, ${b} ${num(l.n2)})`).join('; ')}. Nessas travas um sente muito o que o outro quase não sente, e é aí que costumam nascer os desencontros do dia a dia.</p>`
+    : '<p><b>Nenhuma trava em choque:</b> em todas as dez, a diferença entre vocês ficou abaixo de 2 pontos.</p>';
+  const blocoEspelho = calc.altasJuntos.length
+    ? `<p><b>Onde vocês se espelham no vermelho:</b> ${calc.altasJuntos.map(l => escV(l.nome)).join(', ')}. Quando a mesma trava está alta nos dois, um tende a reforçar o padrão do outro.</p>`
+    : (calc.espelhos.length ? `<p><b>Onde vocês se espelham:</b> ${calc.espelhos.map(l => escV(l.nome)).join(', ')}.</p>` : '');
+  return `
+    <div class="painel-geral">
+      <h2>O mapa de vocês em números</h2>
+      <div class="placar">
+        <div class="pt-alta"><b>${calc.choques.length}</b><span>travas que<br>se chocam</span></div>
+        <div class="pt-media"><b>${calc.altasJuntos.length}</b><span>travas altas<br>nos dois</span></div>
+        <div class="pt-baixa"><b>${calc.espelhos.length}</b><span>travas que<br>se espelham</span></div>
+      </div>
+    </div>
+    <div class="insight">${blocoChoque}${blocoEspelho}</div>
+    <div class="teia">
+      <canvas class="casal-teia" role="img" aria-label="Gráfico de teia com as dez travas de ${a} e de ${b} sobrepostas"></canvas>
+      <div class="legenda casal-legenda">
+        <span><i style="background:${CASAL_COR[1].linha}"></i>${a} (linha contínua)</span>
+        <span><i style="background:${CASAL_COR[2].linha}"></i>${b} (linha tracejada)</span>
+      </div>
+    </div>
+    <h2 class="secao-titulo">As dez travas, lado a lado</h2>
+    <p class="secao-sub">A nota vai de 1 a 10. Alta é 6 ou mais; média, de 5 a 5,9; baixa, até 4,9.</p>
+    <div class="barras-casal">${ord.map(l => `
+      <div class="bdupla">
+        <div class="topo"><span>${escV(l.nome)}</span>${CASAL_REL[l.relacao] ? `<span class="tag-rel ${l.relacao}">${CASAL_REL[l.relacao]}</span>` : ''}</div>
+        ${[[a, l.n1, l.nivel1, 1], [b, l.n2, l.nivel2, 2]].map(([q, v, nv, s]) => `
+        <div class="lp"><span class="quem">${q}</span><div class="trilho"><i style="width:${Math.round(v * 10)}%;background:${CASAL_COR[s].linha}"></i></div><b style="color:${cor(nv)}" title="${nomeNivel(nv)}">${num(v)}</b></div>`).join('')}
+      </div>`).join('')}
+    </div>
+    <div class="aviso-clinico">Este teste é uma ferramenta de autoconhecimento e não substitui diagnóstico nem acompanhamento profissional. Quem lê e interpreta o resultado de vocês é a ${escV(PRIM_TER)}, no atendimento.</div>`;
+}
+function casalMensagemTerapeuta(p1, p2, calc){
+  const lista = ls => ls.length ? casalListaNomes(ls) : 'nenhuma';
+  return [
+    'Oi, ' + PRIM_TER + '! Somos ' + p1 + ' e ' + p2 + ' e terminamos o Teste de Travas Mentais para Casal (código ' + casal.codigo + ').',
+    '',
+    'Travas altas de ' + p1 + ': ' + lista(calc.altas1),
+    'Travas altas de ' + p2 + ': ' + lista(calc.altas2),
+    'Onde nos chocamos: ' + lista(calc.choques),
+    'Altas nos dois: ' + lista(calc.altasJuntos),
+    '',
+    'Queremos conversar sobre o nosso resultado.'
+  ].join('\n');
+}
+function casalMostrarResultado(r){
+  const p1 = (r.p1.nome || '').split(' ')[0], p2 = (r.p2.nome || '').split(' ')[0];
+  const calc = calcularCasal(r.p1.notas, r.p2.notas);
+  $('#casal-dash').innerHTML = `
+    <span class="selo">Teste de Travas para Casal</span>
+    <h1 style="font-size:clamp(27px,6.6vw,37px);margin-bottom:10px">${escV(p1)} e ${escV(p2)}, aqui está o mapa de vocês</h1>
+    <p style="color:var(--tinta-suave)">As duas partes estão concluídas e bloqueadas. Guardem este link: ele abre este resultado sempre que vocês quiserem.</p>
+    ${casalHtmlResultado(p1, p2, calc)}
+    <a class="btn btn-zap" id="casal-zap" href="${casalZapTerapeuta(casalMensagemTerapeuta(p1, p2, calc))}" target="_blank" rel="noopener">
+      <span class="duas">Enviar o nosso resultado para a ${escV(PRIM_TER)}<small>abre a conversa com ${escV(CONFIG.whatsappVisivel)}</small></span></a>`;
+  const ref = document.querySelector('#btn-zap-resultado svg'); if(ref) $('#casal-zap').insertAdjacentHTML('afterbegin', ref.outerHTML);
+  mostrarTela('#tela-casal-resultado'); window.scrollTo({ top:0, behavior:'auto' });
+  casal.teia = { canvas:$('#casal-dash .casal-teia'), calc, n1:p1, n2:p2 };
+  casalDesenharTeia();
+}
+
+/* ---- 11. ÁREA DA TERAPEUTA: gerar código de casal, acompanhar as vagas e ver o resultado ---- */
+function mensagemConviteCasal(primeiro, codigo){
+  return [
+    (primeiro ? 'Oi, ' + primeiro + '!' : 'Oi!') + ' Aqui é a ' + PRIM_TER + '.',
+    '',
+    'Separei para vocês dois o Teste de Travas Mentais para Casal. Cada um responde as suas 50 perguntas e, no final, vocês veem o mapa do casal: onde as travas de vocês se espelham e onde se chocam.',
+    '',
+    'É só tocar no link abaixo. Ao abrir, o código já vai preenchido: é só tocar em “Fazer o teste agora”:',
+    linkDoTeste(codigo),
+    '',
+    'Se o link não abrir direto, o código é: *' + codigo + '*',
+    '',
+    'Quem abrir primeiro informa o próprio nome e o do(a) parceiro(a) e escolhe se vocês vão responder juntos, no mesmo aparelho, ou cada um no seu. Cada parte leva de 10 a 15 minutos. Respondam com sinceridade, cada um por si, pensando em como estão HOJE.',
+    '',
+    'Depois que os dois terminarem, esse mesmo link abre o resultado de vocês sempre que quiserem.'
+  ].join('\n');
+}
+async function casalGerar(){
+  const b = $('#btn-gerar'), nomeCli = $('#cod-nome').value.trim(), zapCli = $('#cod-whats').value.trim();
+  if(modoLocal()){ $('#caixa-codigo').innerHTML = '<div class="aviso ver">O teste de casal precisa de internet para funcionar. Recarregue a página e tente de novo.</div>'; return; }
+  b.disabled = true; b.textContent = 'Gerando...';
+  const r = await api(ACOES.gerarCodigo, { codigo:novoCodigo(), cliente:nomeCli, whatsapp:zapCli, mostrar:true, urgencia:false, casal:true });
+  b.disabled = false; b.textContent = 'Gerar código de casal';
+  if(!r || r.ok === false){ $('#caixa-codigo').innerHTML = '<div class="aviso ver">Não consegui gerar o código agora. Saia da área, entre de novo e tente outra vez.</div>'; return; }
+  const codigo = r.codigo, primeiro = nomeCli ? nomeCli.split(' ')[0] : '', destino = zapNumero(zapCli);
+  $('#caixa-codigo').innerHTML = `
+    <div class="codigo-gerado"><div class="valor">${codigo}</div><div class="para">${nomeCli ? 'Para ' + escV(nomeCli) + ' · ' : ''}Teste de casal: duas partes e um resultado conjunto, que os dois veem no final.</div></div>
+    <a class="btn btn-zap" href="https://wa.me/${destino}?text=${encodeURIComponent(mensagemConviteCasal(primeiro, codigo))}" target="_blank" rel="noopener">
+      <span class="duas">${primeiro ? 'Enviar o link para ' + escV(primeiro) : 'Enviar o link pelo WhatsApp'}<small>${destino ? 'abre a conversa com a mensagem pronta' : 'você escolhe o contato na hora'}</small></span></a>
+    <button class="btn btn-contorno" id="btn-copiar-link-casal">Copiar o link com o código</button>`;
+  $('#btn-copiar-link-casal').addEventListener('click', async e => {
+    try{ await navigator.clipboard.writeText(linkDoTeste(codigo)); e.target.textContent = 'Link copiado!'; }catch(err){ e.target.textContent = 'Não consegui copiar'; }
+    setTimeout(() => { e.target.textContent = 'Copiar o link com o código'; }, 2000);
+  });
+  carregarCodigos();
+}
+const CASAL_STATUS = { pendente:'pendente', em_andamento:'respondendo', concluido:'concluiu ✔' };
+function casalLinhaCodigo(c){
+  const k = c.casal, slots = k ? (k.travas_casal_slots || []).slice().sort((x, y) => x.slot - y.slot) : [];
+  const pronto = !!(k && k.concluido_em), andamento = !!k && !pronto;
+  const sub = !k ? 'aguardando o primeiro acesso · criado em ' + (c.criadoEm || '')
+    : slots.map(s => escV((s.nome || '').split(' ')[0]) + ': ' + CASAL_STATUS[s.status]).join(' · ') + ' · ' + (k.modo === 'juntos' ? 'juntos, no mesmo aparelho' : 'cada um no seu aparelho');
+  const liberar = slots.filter(s => s.status === 'em_andamento' && !pronto)
+    .map(s => `<button type="button" class="mini-btn" data-casal-liberar="${c.codigo}" data-slot="${s.slot}" data-nome="${escV((s.nome || '').split(' ')[0])}">Liberar ${escV((s.nome || '').split(' ')[0])}</button>`).join('');
+  return `<div class="linha-item" style="flex-wrap:wrap">
+      <span class="esq">
+        <span class="nome" style="white-space:normal">${c.codigo}${c.cliente ? ' · ' + escV(c.cliente) : ''}<span class="tag-vis">casal</span></span>
+        <span class="sub" style="white-space:normal">${sub}</span>
+      </span>
+      <span class="etiqueta ${pronto ? 'usado' : 'livre'}">${pronto ? 'concluído' : andamento ? 'em andamento' : 'disponível'}</span>
+      <span style="display:flex;gap:8px;flex-wrap:wrap;width:100%;margin-top:8px"><button type="button" class="mini-btn" data-casal-link="${c.codigo}">Copiar link</button>${pronto ? `<button type="button" class="mini-btn" data-casal-ver="${c.codigo}">Ver resultado do casal</button>` : ''}${liberar}</span>
+    </div>`;
+}
+function casalLigarLista(){
+  $$('[data-casal-link]').forEach(b => b.addEventListener('click', async () => {
+    try{ await navigator.clipboard.writeText(linkDoTeste(b.dataset.casalLink)); b.textContent = 'Copiado!'; }catch(err){ b.textContent = 'Não consegui'; }
+    setTimeout(() => { b.textContent = 'Copiar link'; }, 1800);
+  }));
+  $$('[data-casal-liberar]').forEach(b => b.addEventListener('click', async () => {
+    if(!confirm('Liberar a parte de ' + b.dataset.nome + '?\n\nUse quando a pessoa começou e não conseguiu terminar (trocou de aparelho ou limpou o navegador). O que ela respondeu até agora não foi salvo: ela recomeça do início pelo mesmo link.')) return;
+    const r = await compRpc('travas_casal_liberar', { p_codigo:b.dataset.casalLiberar, p_slot:+b.dataset.slot });
+    if(!r || r.ok !== true) alert('Não consegui liberar. Talvez a pessoa tenha acabado de concluir. A lista vai ser atualizada.');
+    carregarCodigos();
+  }));
+  $$('[data-casal-ver]').forEach(b => b.addEventListener('click', () => casalAbrirNaArea(b.dataset.casalVer)));
+}
+async function casalAbrirNaArea(codigo){
+  $$('.aba-conteudo').forEach(x => x.style.display = 'none');
+  $('#detalhe-resposta').style.display = 'block';
+  const caixa = $('#detalhe-conteudo'); caixa.innerHTML = '<div class="carregando">Carregando...</div>';
+  const cli = clienteMembros();
+  const { data, error } = await cli.from('travas_casais').select('codigo,modo,concluido_em,travas_casal_slots(slot,nome,telefone,email,status,notas,dados,concluido_em)').eq('codigo', codigo).maybeSingle();
+  if(error || !data){ caixa.innerHTML = '<div class="aviso ver">Não consegui carregar este casal agora.</div>'; return; }
+  const s = (data.travas_casal_slots || []).slice().sort((x, y) => x.slot - y.slot), p1 = s[0], p2 = s[1];
+  const n1 = (p1.nome || '').split(' ')[0], n2 = (p2.nome || '').split(' ')[0];
+  const calc = calcularCasal(p1.notas, p2.notas);
+  const quando = iso => iso ? new Date(iso).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+  const ficha = (p, k) => {
+    const resps = (p.dados && Array.isArray(p.dados.respostas)) ? p.dados.respostas.filter(x => +x.valor >= LIMITE_ATENCAO).sort((x, y) => y.valor - x.valor) : [];
+    const zap = zapNumero(p.telefone);
+    return `<div class="cartao casal-ficha" style="border-left:6px solid ${CASAL_COR[k].linha}">
+      <h3 style="font-size:19px;margin:0 0 6px">${escV(p.nome)}</h3>
+      <p class="secao-sub" style="margin:0 0 8px">${escV(p.email || '')}${p.telefone ? ' · ' + escV(p.telefone) : ''} · concluiu em ${quando(p.concluido_em)}</p>
+      ${zap ? `<a class="mini-btn" style="display:inline-flex;align-items:center;text-decoration:none" href="https://wa.me/${zap}" target="_blank" rel="noopener">WhatsApp de ${escV((p.nome || '').split(' ')[0])}</a>` : ''}
+      <details style="margin-top:10px"><summary>Respostas com nota ${LIMITE_ATENCAO} ou mais (${resps.length})</summary>
+        <ul style="margin:8px 0 0;padding-left:18px">${resps.map(x => `<li><b>${x.valor}</b> · ${escV(x.pergunta)}</li>`).join('') || '<li>Nenhuma.</li>'}</ul></details>
+    </div>`;
+  };
+  casal.codigo = codigo;
+  caixa.innerHTML = `
+    <h2 style="font-size:24px;margin:6px 0 4px">${escV(n1)} e ${escV(n2)}</h2>
+    <p class="secao-sub">Teste de casal · ${codigo} · ${data.modo === 'juntos' ? 'responderam juntos, no mesmo aparelho' : 'cada um no seu aparelho'} · concluído em ${quando(data.concluido_em)}</p>
+    ${ficha(p1, 1)}${ficha(p2, 2)}
+    ${casalHtmlResultado(n1, n2, calc)}`;
+  casal.teia = { canvas:caixa.querySelector('.casal-teia'), calc, n1, n2 };
+  casalDesenharTeia();
+}
+/* o botão "Casal" na escolha do tipo de código */
+let casalModoSel = false;
+const casalModo = () => casalModoSel;
+$$('#alt-modo button').forEach(b => b.addEventListener('click', () => {
+  casalModoSel = b.dataset.v === 'casal';
+  const esconder = ['#alt-resultado', '#alt-urgencia', '#cod-qtd'];
+  esconder.forEach(s => { const el = $(s); if(el) el.closest('.campo').style.display = (casalModoSel || (s === '#cod-qtd' && compModo())) ? 'none' : ''; });
+  if(casalModoSel){ $('#cod-qtd').value = '1'; $('#cod-qtd').dispatchEvent(new Event('change')); }
+  $('#rot-cod-nome').innerHTML = casalModoSel ? 'Nome de quem vai receber o link <span class="opc">(opcional)</span>' : 'Nome da cliente <span class="opc">(opcional)</span>';
+  $('#rot-cod-whats').innerHTML = casalModoSel ? 'WhatsApp de quem vai receber o link <span class="opc">(opcional)</span>' : 'WhatsApp da cliente <span class="opc">(opcional)</span>';
+  $('#dica-casal').style.display = casalModoSel ? '' : 'none';
+  if(casalModoSel) $('#btn-gerar').textContent = 'Gerar código de casal';
+}));
+
+$('#voltar-casal').addEventListener('click', () => { estado.casal = false; mostrarTela('#tela-capa'); });
 </script>
 <div id="ap-overlay"></div>
 <script type="text/plain" id="ap-src"><!DOCTYPE html>

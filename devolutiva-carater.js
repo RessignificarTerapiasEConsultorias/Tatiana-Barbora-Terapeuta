@@ -243,7 +243,7 @@ function dvAcao(n, a, V){
 }
 function dvPico(id, pct, pos, V, nomeQuem){
   const t = tcTraco(id), d = DV[id];
-  return `<div class="dv-pico"><div class="dv-pico-topo"><b>${nomeQuem ? escV(nomeQuem) + ' · ' : ''}${pos}º ${escV(t.nome).toUpperCase()} (${tcPct(pct)})</b><span>${escV(d.tag)}</span></div>
+  return `<div class="dv-pico"><div class="dv-pico-topo"><b>${nomeQuem ? escV(nomeQuem) + ' · ' : ''}${pos === 1 ? 'PICO PRIMÁRIO' : 'PICO SECUNDÁRIO'}: ${escV(t.nome).toUpperCase()} (${tcPct(pct)})</b><span>${escV(d.tag)}</span></div>
     <p><b>A dor central:</b> ${V(t.dor)}</p><p><b>Formação na infância:</b> ${V(d.formacao)}</p>
     <p><b>No dia a dia:</b> ${V(t.dia)}</p><p><b>Virada de chave:</b> ${V(t.virada)}</p></div>`;
 }
@@ -288,7 +288,7 @@ function dvIndividual(o){
   const vars = { P1:p1.nome, P2:p2.nome, nome:prim };
   const V = s => escV(dvGen(dvT(s, vars), g));
   const sup = ord.slice(2);
-  const linhas = ord.map((x, i) => `<tr class="${i < 2 ? 'pico' : ''}"><td>${i + 1}º</td><td>${escV(x.nome)}</td><td>${tcPct(x.pct)}</td><td>${i === 0 ? 'Pico Primário' : i === 1 ? 'Pico Secundário' : escV(DV[x.id].suporte)}</td><td>${escV(tcTraco(x.id).recurso)}</td></tr>`).join('');
+  const linhas = ord.map((x, i) => `<tr class="${i < 2 ? 'pico' : ''}"><td data-r="Posição">${i + 1}.</td><td data-r="Traço">${escV(x.nome)}</td><td data-r="Porcentagem">${tcPct(x.pct)}</td><td data-r="Classificação">${i === 0 ? 'Pico Primário' : i === 1 ? 'Pico Secundário' : escV(DV[x.id].suporte)}</td><td data-r="Papel no perfil">${escV(tcTraco(x.id).recurso)}</td></tr>`).join('');
   const proximo = ord[2].pct >= p2.pct - 1 ? ` O ${escV(ord[2].nome)} (${tcPct(ord[2].pct)}) aparece muito perto do pico secundário e também pesa bastante no seu jeito de ser.` : '';
   const plano = ord[0].pct - ord[4].pct < 4 ? ' Os seus cinco traços estão bem distribuídos, o que mostra flexibilidade: você transita entre estilos diferentes conforme a situação.' : '';
   const acoes = [par.acao, d1.acoes[0], d2.acoes[0], d1.acoes[1], DV[sup[0].id].recurso, DV[sup[1].id].recurso, DV[sup[2].id].recurso];
@@ -309,7 +309,7 @@ function dvIndividual(o){
   <div class="dv-2col">${dvPico(p1.id, p1.pct, 1, V)}${dvPico(p2.id, p2.pct, 2, V)}</div>
   <h2 class="dv-h2">3. Traços complementares e equilíbrio do perfil</h2>
   <div class="dv-tabela"><table><thead><tr><th>Traço</th><th>Recurso disponível</th><th>Contribuição prática para ${escV(prim)}</th></tr></thead><tbody>
-    ${sup.map(x => `<tr><td><b>${escV(x.nome)}</b> (${tcPct(x.pct)})</td><td>${escV(DV[x.id].recursoCurto)}</td><td>${V(DV[x.id].contrib + ' para equilibrar ' + d1.atencao + ' e ' + d2.atencao + '.')}</td></tr>`).join('')}
+    ${sup.map(x => `<tr><td data-r="Traço"><b>${escV(x.nome)}</b> (${tcPct(x.pct)})</td><td data-r="Recurso">${escV(DV[x.id].recursoCurto)}</td><td data-r="Contribuição">${V(DV[x.id].contrib + ' para equilibrar ' + d1.atencao + ' e ' + d2.atencao + '.')}</td></tr>`).join('')}
   </tbody></table></div>
   <h2 class="dv-h2">4. Síntese integrativa do perfil de ${escV(prim)}</h2>
   <div class="dv-sintese"><p>${escV(prim)}, o seu perfil apresenta uma combinação de <b>Pico Duplo: ${escV(p1.nome)} (${tcPct(p1.pct)}) e ${escV(p2.nome)} (${tcPct(p2.pct)})</b>, somando ${tcPct(c.pico)} da sua energia vital. Isso revela o perfil de <b>${escV(par.arquetipo)}</b>. ${V(par.texto)} ${V(par.desafio)}${proximo}${plano}</p></div>
@@ -344,7 +344,7 @@ function dvCasal(o){
       <li><b>Dor central:</b> ${V(cs.dor)}</li><li><b>O que trabalhar:</b> ${V(cs.trabalhar)}</li><li><b>Direcionamento:</b> ${V(cs.direcao)}</li><li><b>Ação prática:</b> ${V(cs.acao)}</li></ul></div>`;
   const cmp = k.linhas.map(l => {
     const pkA = A.calc.ordem.slice(0, 2).some(x => x.id === l.id), pkB = B.calc.ordem.slice(0, 2).some(x => x.id === l.id);
-    return `<tr><td>${escV(l.nome)}</td><td class="${pkA ? 'pico' : ''}">${tcPct(l.p1)}</td><td class="${pkB ? 'pico' : ''}">${tcPct(l.p2)}</td><td>${escV(tcTraco(l.id).recurso)}</td></tr>`;
+    return `<tr><td data-r="Traço"><b>${escV(l.nome)}</b></td><td data-r="${escV(nA)}" class="${pkA ? 'pico' : ''}">${tcPct(l.p1)}</td><td data-r="${escV(nB)}" class="${pkB ? 'pico' : ''}">${tcPct(l.p2)}</td><td data-r="Recurso">${escV(tcTraco(l.id).recurso)}</td></tr>`;
   }).join('');
   const comum = k.emComum.length
     ? `<p><b>Onde vocês se encontram:</b> ${k.emComum.map(l => escV(l.nome)).join(' e ')} ${k.emComum.length > 1 ? 'estão' : 'está'} entre os dois traços mais fortes de cada um. Vocês se reconhecem nesse jeito de funcionar e também tendem a reforçar a mesma defesa um no outro.</p>`
@@ -362,7 +362,7 @@ function dvCasal(o){
   <h2 class="dv-h2">2. Os traços de caráter</h2>
   ${dvAlinhamento('')}
   <div class="dv-tabela"><table><thead><tr><th>Traço</th><th>A dor central</th><th>O recurso que ele traz</th></tr></thead><tbody>
-    ${TC_TRACOS.map(t => `<tr><td><b>${escV(t.nome)}</b></td><td>${escV(t.dor)}</td><td>${escV(t.recurso)}</td></tr>`).join('')}
+    ${TC_TRACOS.map(t => `<tr><td data-r="Traço"><b>${escV(t.nome)}</b></td><td data-r="Dor central">${escV(t.dor)}</td><td data-r="Recurso">${escV(t.recurso)}</td></tr>`).join('')}
   </tbody></table></div>
   <h2 class="dv-h2">3. O mapa individual de cada um</h2>
   <div class="dv-dist">
@@ -386,7 +386,7 @@ function dvCasal(o){
   <h2 class="dv-h2">6. Matriz de mapeamento de dores x ações de cura</h2>
   <p>O cruzamento dos pontos de tensão mais prováveis no relacionamento e o caminho terapêutico indicado para superá-los:</p>
   <div class="dv-tabela"><table class="dv-matriz"><thead><tr><th>Área de tensão</th><th>Manifestação no casal</th><th>Intervenção sugerida</th></tr></thead><tbody>
-    ${DV_AREAS.map(ar => `<tr><td><b>${ar.nome}</b></td><td>${escV(nA)} ${VA(da.areas[ar.id])}; ${escV(nB)} ${VB(db.areas[ar.id])}.</td><td>${escV(ar.intervencao)}</td></tr>`).join('')}
+    ${DV_AREAS.map(ar => `<tr><td data-r="Área"><b>${ar.nome}</b></td><td data-r="No casal">${escV(nA)} ${VA(da.areas[ar.id])}; ${escV(nB)} ${VB(db.areas[ar.id])}.</td><td data-r="Intervenção">${escV(ar.intervencao)}</td></tr>`).join('')}
   </tbody></table></div>
   <h2 class="dv-h2">7. Plano de direcionamento terapêutico de casal</h2>
   <p>Para os próximos meses do processo terapêutico, o plano de trabalho estará focado na consolidação de novos hábitos relacionais e no fortalecimento da segurança emocional do casal. Estabelecemos três pilares prioritários:</p>

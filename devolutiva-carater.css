@@ -69,10 +69,22 @@
 .dv-editando{outline:3px dashed var(--salvia);outline-offset:4px}
 .dv-genero{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .dv-genero label{display:flex;align-items:center;justify-content:center;min-height:46px;border:1.5px solid var(--borda);border-radius:12px;background:var(--papel);font-weight:700;font-size:15px;cursor:pointer;text-align:center;padding:6px}
-.dv-genero input{position:absolute;opacity:0;pointer-events:none}
+.dv-genero label{position:relative}
+.dv-genero input{position:absolute;opacity:0;pointer-events:none;width:1px!important;height:1px!important;min-height:0!important;left:0;top:0;margin:0;padding:0}
 .dv-genero input:checked+span{color:#fff}
 .dv-genero label:has(input:checked){background:var(--argila);border-color:var(--argila);color:#fff}
 
+/* celular: as tabelas viram fichas empilhadas */
+@media screen and (max-width:620px){
+  .dv-tabela thead{display:none}
+  .dv-tabela table,.dv-tabela tbody,.dv-tabela tr,.dv-tabela td{display:block;width:100%}
+  .dv-tabela tr{border:1px solid var(--borda);border-radius:10px;margin-bottom:8px;padding:8px 12px;background:#fff}
+  .dv-tabela td{border:0;padding:2px 0}
+  .dv-tabela td[data-r]::before{content:attr(data-r) ": ";font-weight:800;color:var(--argila);font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+  .dv-tabela tr.pico{background:#FBF0E8}
+  .dv-tabela td.pico{background:none;color:var(--argila)}
+  .dv-matriz td:first-child{white-space:normal}
+}
 /* PDF: só a devolutiva, em A4 */
 #dv-impressao{display:none}
 @media print{
@@ -83,10 +95,12 @@
   #dv-impressao .dv{border:0;padding:0;margin:0;font-size:11.5pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   #dv-impressao .dv-sem-print{display:none!important}
   #dv-impressao .dv-so-print{display:inline}
-  #dv-impressao .dv-pico,#dv-impressao .dv-card,#dv-impressao .dv-acao,#dv-impressao .dv-caixa,#dv-impressao .dv-sintese,#dv-impressao .dv-destaque,#dv-impressao .dv-final,#dv-impressao .dv-acordo,#dv-impressao tr{break-inside:avoid}
+  #dv-impressao .dv-pico,#dv-impressao .dv-card,#dv-impressao .dv-acao,#dv-impressao .dv-sintese,#dv-impressao .dv-destaque,#dv-impressao .dv-final,#dv-impressao .dv-acordo,#dv-impressao tr{break-inside:avoid}
   #dv-impressao .dv-h2{break-after:avoid}
   #dv-impressao .dv-2col,#dv-impressao .dv-plano{grid-template-columns:1fr 1fr}
-  #dv-impressao .dv-dist{grid-template-columns:1.3fr 1fr}
+  #dv-impressao .dv-dist{grid-template-columns:1fr}
+  #dv-impressao .dv-tabela{overflow:visible}
+  #dv-impressao .dv-teia-img{max-width:270px}
   #dv-impressao .dv-topo{grid-template-columns:1.1fr 1fr}
 }
 .rotulo-campo{display:block;font-weight:700;font-size:16px;margin-bottom:8px;color:var(--tinta)}

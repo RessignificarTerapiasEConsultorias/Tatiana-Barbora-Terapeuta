@@ -9,8 +9,14 @@
    "(a)" vira "a" ou some, conforme a pessoa escolheu ser tratada no feminino
    ou no masculino; sem escolha, fica "(a)".
    ============================================================================ */
-const DV_TERAPEUTA = 'Tati Barbosa';
-const DV_ASSINATURA = 'Tati Barbosa — Análise Corporal & Terapeuta';
+/* Quem assina. No site da Tatiana vale o padrão abaixo; no domínio da Ressignificar vem do cadastro da terapeuta
+   (travas_paginas.dados: nome_curto e assinatura, ou nome e título). */
+const DV_TERAPEUTA_PADRAO = 'Tati Barbosa';
+const DV_ASSINATURA_PADRAO = 'Tati Barbosa — Análise Corporal & Terapeuta';
+function dvCad(){ return (window.__T && window.__T.dados) || null; }
+function dvTerapeuta(){ const d = dvCad(); return d ? (d.nome_curto || d.nome) : DV_TERAPEUTA_PADRAO; }
+function dvAssinatura(){ const d = dvCad(); return d ? (d.assinatura || (d.nome + (d.titulo ? ' — ' + d.titulo : ''))) : DV_ASSINATURA_PADRAO; }
+function dvComA(){ return typeof T_A !== 'undefined' ? T_A : 'a ' + PRIM_TER; }
 const DV_ORDEM = ['esquizoide', 'oral', 'psicopata', 'masoquista', 'rigido'];
 
 const DV = {
@@ -254,7 +260,7 @@ function dvAlinhamento(prim){
     <p>Os traços de caráter são mapas de como a mente e o corpo se moldaram para responder às experiências da infância. Eles não representam defeitos, mas sim mecanismos de defesa inteligentes que geraram os maiores talentos de cada pessoa. Compreender o perfil é o primeiro passo para relaxar a "armadura" e viver com mais leveza, equilíbrio e autenticidade.</p></div>`;
 }
 function dvCta(texto){
-  return `<div class="dv-cta"><b>Este é um primeiro mapa.</b> ${texto} Para aprofundar cada ponto e transformar este mapa em mudança real, o próximo passo é iniciar o processo terapêutico com a ${escV(PRIM_TER)}.
+  return `<div class="dv-cta"><b>Este é um primeiro mapa.</b> ${texto} Para aprofundar cada ponto e transformar este mapa em mudança real, o próximo passo é iniciar o processo terapêutico com ${escV(dvComA())}.
     <span class="dv-so-print"> WhatsApp: ${escV(CONFIG.whatsappVisivel)}</span></div>
     <p class="dv-aviso">Este teste é uma ferramenta de autoconhecimento e não substitui diagnóstico nem acompanhamento profissional.</p>`;
 }
@@ -296,7 +302,7 @@ function dvIndividual(o){
   return `<article class="dv" data-dv>
   <header class="dv-topo">
     <div><h1>Relatório de Devolutiva Terapêutica</h1><p>Mapeamento de Perfil Corporal &amp; Comportamental</p></div>
-    <dl><dt>Cliente:</dt><dd>${escV(o.nome)}</dd><dt>Data:</dt><dd>${escV(dvData(o.data))} · Terapeuta: ${escV(DV_TERAPEUTA)}</dd>
+    <dl><dt>Cliente:</dt><dd>${escV(o.nome)}</dd><dt>Data:</dt><dd>${escV(dvData(o.data))} · Terapeuta: ${escV(dvTerapeuta())}</dd>
       <dt>Metodologia:</dt><dd>${escV(TC_NOME)} (40 perguntas)</dd><dt>Resumo dos picos:</dt><dd>${escV(p1.nome)} (${tcPct(p1.pct)}) + ${escV(p2.nome)} (${tcPct(p2.pct)})</dd></dl>
   </header>
   ${dvAlinhamento(prim)}
@@ -319,7 +325,7 @@ function dvIndividual(o){
   <ol class="dv-perguntas">${perguntas.map(q => `<li>${V(q)}</li>`).join('')}</ol>
   <h2 class="dv-h2">7. Considerações finais da terapeuta</h2>
   <div class="dv-final"><p><b>${dvQuerido(g)} ${escV(prim)},</b> você possui ${V(d1.talento)} e ${V(d2.talento)}. Lembre-se de que ${V(d1.lembrete)}. Permita-se ${V(d2.permissao)}, confie no valor da sua presença e aproveite a sua jornada com equilíbrio, orgulho e leveza!</p>
-    <p class="dv-ass">${escV(DV_ASSINATURA)}</p></div>
+    <p class="dv-ass">${escV(dvAssinatura())}</p></div>
   ${dvCta('Esta devolutiva é propositalmente resumida.')}
   ${o.terapeuta ? dvLeituraClinica(o.respostas, o.nome, c) : ''}
 </article>`;
@@ -353,7 +359,7 @@ function dvCasal(o){
   return `<article class="dv dv-casal" data-dv>
   <header class="dv-topo">
     <div><span class="dv-olho">Relatório de avaliação &amp; diagnóstico sistemático</span><h1>Devolutiva Terapêutica de Casal</h1></div>
-    <dl><dt>Casal:</dt><dd>${escV(A.nome)} &amp; ${escV(B.nome)}</dd><dt>Data:</dt><dd>${escV(dvData(o.data))} · Terapeuta: ${escV(DV_TERAPEUTA)}</dd>
+    <dl><dt>Casal:</dt><dd>${escV(A.nome)} &amp; ${escV(B.nome)}</dd><dt>Data:</dt><dd>${escV(dvData(o.data))} · Terapeuta: ${escV(dvTerapeuta())}</dd>
       <dt>Modalidade:</dt><dd>Terapia Sistêmica de Casal</dd><dt>Metodologia:</dt><dd>${escV(TC_NOME)} (40 perguntas, cada um)</dd></dl>
   </header>
   <h2 class="dv-h2">1. Panorama geral e propósito da devolutiva</h2>
@@ -401,7 +407,7 @@ function dvCasal(o){
   <div class="dv-acordo"><h3>Acordo terapêutico de engajamento</h3>
     <p>"Comprometemo-nos a praticar a escuta empática, respeitar as pausas necessárias e acolher a vulnerabilidade um do outro no processo de renovação da nossa aliança."</p>
     <div class="dv-assinaturas"><span>${escV(A.nome)}</span><span>${escV(B.nome)}</span></div></div>
-  <p class="dv-ass">${escV(DV_ASSINATURA)}</p>
+  <p class="dv-ass">${escV(dvAssinatura())}</p>
   ${dvCta('Esta devolutiva do casal é propositalmente resumida.')}
   ${o.terapeuta ? `<div class="dv-2col dv-sem-print">${dvLeituraClinica(A.respostas, A.nome, A.calc).replace('Leitura para a terapeuta', 'Leitura para a terapeuta · ' + escV(nA))}${dvLeituraClinica(B.respostas, B.nome, B.calc).replace('Leitura para a terapeuta', 'Leitura para a terapeuta · ' + escV(nB))}</div>` : ''}
 </article>`;

@@ -533,6 +533,8 @@ body.com-tempo{padding-top:60px}
 body.ap-aberto{overflow:hidden}
 @media print{#ap-overlay{display:none!important}}
 </style>
+<link rel="stylesheet" href="devolutiva-carater.css">
+<script src="devolutiva-carater.js"></script>
 </head>
 <body>
 <div class="envelope">
@@ -805,7 +807,7 @@ body.ap-aberto{overflow:hidden}
   <div class="capa">
     <div class="moldura"><img id="tc-foto" alt="Tatiana Barbosa da Silva, terapeuta"></div>
     <div class="lado-texto">
-      <span class="selo">Teste de Identificação dos Traços de Caráter</span>
+      <span class="selo">Teste de Caráter Comportamental</span>
       <h1>Como a sua história moldou o seu jeito de ser?</h1>
       <p class="assinatura">Um convite da terapeuta <strong>Tatiana Barbosa da Silva</strong></p>
       <p class="texto-capa">Desde a gestação até os primeiros anos de vida, o corpo e a mente aprendem a se proteger. Esses jeitos de se proteger viram traços que aparecem até hoje na sua postura, nas suas relações e nas suas decisões.</p>
@@ -873,7 +875,7 @@ body.ap-aberto{overflow:hidden}
       <label id="rot-alt-teste">Qual teste?</label>
       <div class="alternar" id="alt-teste" role="radiogroup" aria-labelledby="rot-alt-teste">
         <button type="button" class="ativa" data-v="travas" role="radio" aria-checked="true">Teste de Travas Mentais<small>50 perguntas · 10 travas</small></button>
-        <button type="button" data-v="tracos" role="radio" aria-checked="false">Traços de Caráter<small>40 afirmações · individual ou casal</small></button>
+        <button type="button" data-v="tracos" role="radio" aria-checked="false">Caráter Comportamental<small>40 afirmações · individual ou casal</small></button>
       </div>
     </div>
     <div id="painel-tc">
@@ -2662,14 +2664,14 @@ window.addEventListener('resize', ()=>{
   if($('#tela-resultado').classList.contains('ativa') && estado.resultado) desenharTeia($('#teia'), estado.resultado.linhas);
 });
 /* ============================================================================
-   TESTE DE IDENTIFICAÇÃO DOS TRAÇOS DE CARÁTER  (separado do Teste de Travas)
+   TESTE DE CARÁTER COMPORTAMENTAL (os 5 traços de caráter; separado do Teste de Travas)
    40 afirmações, escala de 1 (Nunca) a 5 (Sempre), 5 traços. Individual ou casal.
    Cálculo igual ao da planilha da Tatiana:
      - afirmações 31 a 35 são invertidas (1↔5, 2↔4);
      - soma por traço ÷ pontuação máxima do traço × 100  (Esquizoide 40, Oral 45, Psicopata 35, Masoquista 40, Rígido 40);
      - cada índice ÷ soma dos 5 índices × 100 = a porcentagem; a ordem dá o 1º (primário) e o 2º (secundário).
    ============================================================================ */
-const TC_NOME = 'Teste de Identificação dos Traços de Caráter';
+const TC_NOME = 'Teste de Caráter Comportamental';
 const TC_ESCALA = ['Nunca', 'Raramente', 'Às vezes', 'Frequentemente', 'Sempre'];
 /* Textos de cada traço (a Tatiana pode ajustar aqui). */
 const TC_TRACOS = [
@@ -2946,6 +2948,12 @@ function tcTelaDados(slot, nomeSugerido){
       <div class="campo"><label for="td-nome">O seu nome completo</label><input id="td-nome" type="text" autocomplete="name" value="${escV(nomeSugerido || '')}" placeholder="Nome e sobrenome"></div>
       <div class="campo"><label for="td-tel">O seu WhatsApp (com DDD)</label><input id="td-tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000"></div>
       <div class="campo"><label for="td-email">O seu e-mail</label><input id="td-email" type="email" inputmode="email" autocomplete="email" placeholder="voce@email.com"></div>
+      <div class="campo"><span class="rotulo-campo" id="td-gen-rot">Na devolutiva, como prefere ser tratado(a)?</span>
+        <div class="dv-genero" role="radiogroup" aria-labelledby="td-gen-rot">
+          <label><input type="radio" name="td-gen" value="f"><span>No feminino</span></label>
+          <label><input type="radio" name="td-gen" value="m"><span>No masculino</span></label>
+          <label><input type="radio" name="td-gen" value="" checked><span>Tanto faz</span></label>
+        </div></div>
       <div class="campo campo-check"><label class="check" for="td-consent"><input id="td-consent" type="checkbox">
         <span>Concordo que as minhas respostas sejam enviadas para a ${escV(PRIM_TER)}, que vai usá-las para ${casal ? 'nos' : 'me'} atender e mantê-las em sigilo.</span></label></div>
       <div class="aviso" id="td-aviso"></div>
@@ -2958,7 +2966,9 @@ function tcTelaDados(slot, nomeSugerido){
       : tcDig(t).length < 10 ? 'Escreva o seu WhatsApp com DDD.' : !tcEmail(em) ? 'Escreva um e-mail válido.'
       : !$('#td-consent').checked ? 'Para continuar, marque que você concorda com o envio.' : '';
     if(erro) return avisar('#td-aviso', erro);
-    if(!casal){ tc.dados = { nome:n, whatsapp:t, email:em }; return tcComecarIndividual(); }
+    const gen = ($('input[name="td-gen"]:checked') || {}).value || '';
+    if(!casal){ tc.dados = { nome:n, whatsapp:t, email:em, genero:gen }; return tcComecarIndividual(); }
+    tcGuardar(tc.codigo, l => { l.generos = Object.assign({}, l.generos, { [slot]:gen }); });
     const b = $('#td-ir'); b.disabled = true; b.textContent = 'Preparando...';
     const r = await compRpc('travas_casal_iniciar', { p_codigo:tc.codigo, p_slot:slot, p_nome:n, p_tel:t, p_email:em, p_consent:true });
     if(!r || r.ok !== true){ b.disabled = false; b.textContent = 'Continuar'; return avisar('#td-aviso', (r && r.msg) || 'Não consegui salvar agora. Confira a sua internet e tente de novo.'); }
@@ -3025,13 +3035,15 @@ async function tcFinalizarIndividual(){
   const msg = ['Oi, ' + PRIM_TER + '! Sou ' + tc.dados.nome + ' e terminei o ' + TC_NOME + ' (código ' + tc.codigo + ').', '',
     'Os meus traços, do mais forte para o mais leve:', ...calc.ordem.map((x, i) => (i + 1) + 'º ' + x.nome + ': ' + tcPct(x.pct)), '', 'Quero conversar sobre o meu resultado.'].join('\n');
   $('#tc-resultado').innerHTML = `<span class="selo">${escV(TC_NOME)}</span>
-    <h1 class="tc-h1">${escV(prim)}, este é o seu mapa de traços</h1>
+    <h1 class="tc-h1">${escV(prim)}, esta é a sua devolutiva</h1>
     <p style="color:var(--tinta-suave)">Os traços de caráter mostram como o seu corpo e a sua mente aprenderam a se proteger. Eles não são defeitos: são defesas inteligentes que também deram origem aos seus maiores talentos.</p>
-    ${tcHtmlIndividual(calc)}
+    ${dvBarra(false)}
+    ${dvIndividual({ nome:tc.dados.nome, genero:tc.dados.genero, data:hoje(), calc })}
     <a class="btn btn-zap" id="tr-zap" href="${tcZapTer(msg)}" target="_blank" rel="noopener"><span class="duas">Enviar o meu resultado para a ${escV(PRIM_TER)}<small>abre a conversa com ${escV(CONFIG.whatsappVisivel)}</small></span></a>`;
   tcZapSvg($('#tr-zap'));
   mostrarTela('#tela-tc-resultado'); window.scrollTo({ top:0, behavior:'auto' });
   tcLigarTeia($('#tc-resultado'), tcSeries1(calc));
+  dvLigar($('#tc-resultado'));
 }
 
 /* ---- 7. CASAL: duas vagas, bloqueio e resultado conjunto ---- */
@@ -3128,7 +3140,7 @@ function tcTelaComecarCasal(slot){
 }
 async function tcFinalizarParte(){
   const calc = tcCalcular(tc.respostas), slot = tc.slot, tk = tcLocal(tc.codigo).tokens[slot];
-  const dados = Object.assign(tcPacote(calc), { slot, nome:tc.nomes[slot] });
+  const dados = Object.assign(tcPacote(calc), { slot, nome:tc.nomes[slot], genero:((tcLocal(tc.codigo).generos || {})[slot] || '') });
   tcMostrar('<div class="carregando">Salvando as suas respostas...</div>');
   const res = await compRpc('travas_casal_salvar', { p_codigo:tc.codigo, p_slot:slot, p_token:tk, p_dados:dados });
   const jaSalvo = res && res.erro === 'concluido';
@@ -3183,16 +3195,17 @@ async function tcCasalResultado(digitado){
   if(r && r.ok === true && !r.oculto){
     if(contato && !tk) tcGuardar(tc.codigo, l => { l.contato = contato; });
     const n1 = tcPrim(r.p1.nome), n2 = tcPrim(r.p2.nome), k = calcularCasal(r.p1.notas, r.p2.notas);
+    const dvc = dvCasal({ a:{ nome:r.p1.nome, genero:r.p1.genero, calc:k.p1 }, b:{ nome:r.p2.nome, genero:r.p2.genero, calc:k.p2 }, k, data:String(r.concluido_em || hoje()).slice(0, 10) });
     const msg = ['Oi, ' + PRIM_TER + '! Somos ' + n1 + ' e ' + n2 + ' e terminamos o ' + TC_NOME + ' (código ' + tc.codigo + ').', '',
       n1 + ': ' + k.p1.ordem.map(x => x.nome + ' ' + tcPct(x.pct)).join(', '), n2 + ': ' + k.p2.ordem.map(x => x.nome + ' ' + tcPct(x.pct)).join(', '), '', 'Queremos conversar sobre o nosso resultado.'].join('\n');
     $('#tc-resultado').innerHTML = `<span class="selo">${escV(TC_NOME)} · Casal</span>
-      <h1 class="tc-h1">${escV(n1)} e ${escV(n2)}, aqui está o mapa de vocês</h1>
-      <p style="color:var(--tinta-suave)">As duas partes estão concluídas e bloqueadas. Guardem este link: ele abre este resultado sempre que vocês quiserem.</p>
-      ${tcHtmlCasal(n1, n2, k)}
+      <h1 class="tc-h1">${escV(n1)} e ${escV(n2)}, esta é a devolutiva de vocês</h1>
+      <p style="color:var(--tinta-suave)">As duas partes estão concluídas e bloqueadas. Guardem este link: ele abre esta devolutiva sempre que vocês quiserem.</p>
+      ${dvBarra(false)}${dvc}
       <a class="btn btn-zap" id="tcr-zap" href="${tcZapTer(msg)}" target="_blank" rel="noopener"><span class="duas">Enviar o nosso resultado para a ${escV(PRIM_TER)}<small>abre a conversa com ${escV(CONFIG.whatsappVisivel)}</small></span></a>`;
     tcZapSvg($('#tcr-zap'));
     mostrarTela('#tela-tc-resultado'); window.scrollTo({ top:0, behavior:'auto' });
-    return tcLigarTeia($('#tc-resultado'), tcSeries2(k));
+    tcLigarTeia($('#tc-resultado'), tcSeries2(k)); dvLigar($('#tc-resultado')); return;
   }
   if(r && r.erro === 'incompleto') return tcCasalEntrar();
   if(salvo && !digitado) tcGuardar(tc.codigo, l => { delete l.contato; });
@@ -3346,9 +3359,14 @@ function tcDetalheIndividual(r){
   tcAbrirDetalhe(`<h2 style="font-size:24px;margin:6px 0 4px">${escV(r.nome)}</h2>
     <p class="secao-sub">${escV(r.codigo)} · ${tcQuando(r.criado_em)}${d.duracaoMin != null ? ' · ' + d.duracaoMin + ' min' : ''}<br>${escV(d.email || '')}${d.whatsapp ? ' · ' + escV(d.whatsapp) : ''}</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${zap ? `<a class="mini-btn" style="display:inline-flex;align-items:center;text-decoration:none" href="https://wa.me/${zap}" target="_blank" rel="noopener">WhatsApp</a>` : ''}<button type="button" class="mini-btn" id="tc-copiar-resumo">Copiar o resumo</button></div>
-    ${tcHtmlIndividual(calc)}${tcTabelaRespostas(d.respostas)}`);
+    <div id="dv-area"></div>${tcTabelaRespostas(d.respostas)}`);
+  const desenharDv = gen => {
+    const area = $('#dv-area');
+    area.innerHTML = dvBarra(true, gen) + dvIndividual({ nome:r.nome, genero:gen, data:String(r.criado_em || '').slice(0, 10), calc, respostas:d.respostas, terapeuta:true });
+    tcLigarTeia(area, tcSeries1(calc)); dvLigar(area, desenharDv);
+  };
+  desenharDv(d.genero || '');
   $('#tc-copiar-resumo').addEventListener('click', async e => { try{ await navigator.clipboard.writeText(tcResumoTexto(r.nome, calc)); e.target.textContent = 'Copiado!'; }catch(err){ e.target.textContent = 'Não consegui'; } setTimeout(() => { e.target.textContent = 'Copiar o resumo'; }, 1800); });
-  tcLigarTeia($('#tc-detalhe-conteudo'), tcSeries1(calc));
 }
 async function tcDetalheCasal(codigo){
   tcAbrirDetalhe('<div class="carregando">Carregando...</div>');
@@ -3365,12 +3383,23 @@ async function tcDetalheCasal(codigo){
   $('#tc-detalhe-conteudo').innerHTML = `<h2 style="font-size:24px;margin:6px 0 4px">${escV(n1)} e ${escV(n2)}</h2>
     <p class="secao-sub">Casal · ${codigo} · ${data.modo === 'juntos' ? 'responderam juntos, no mesmo aparelho' : 'cada um no seu aparelho'} · concluído em ${tcQuando(data.concluido_em)}</p>
     <button type="button" class="mini-btn" id="tc-copiar-resumo-c" style="margin-bottom:14px">Copiar o resumo do casal</button>
-    ${ficha(p1, 1, k.p1)}${ficha(p2, 2, k.p2)}${tcHtmlCasal(n1, n2, k)}`;
+    <div id="dv-area"></div><h2 class="secao-titulo">Contatos e respostas de cada um</h2>${ficha(p1, 1, k.p1)}${ficha(p2, 2, k.p2)}`;
+  const g1 = (p1.dados && p1.dados.genero) || '', g2 = (p2.dados && p2.dados.genero) || '';
+  const desenharDvC = (ga, gb) => {
+    const area = $('#dv-area');
+    area.innerHTML = `<div class="dv-barra dv-sem-print"><button type="button" class="mini-btn" data-dv-pdf>Baixar em PDF</button><button type="button" class="mini-btn" data-dv-editar>Editar o texto</button>
+      <label class="dv-trat">${escV(n1)} <select data-dv-ga><option value="">neutro</option><option value="f"${ga === 'f' ? ' selected' : ''}>feminino</option><option value="m"${ga === 'm' ? ' selected' : ''}>masculino</option></select></label>
+      <label class="dv-trat">${escV(n2)} <select data-dv-gb><option value="">neutro</option><option value="f"${gb === 'f' ? ' selected' : ''}>feminino</option><option value="m"${gb === 'm' ? ' selected' : ''}>masculino</option></select></label></div>`
+      + dvCasal({ a:{ nome:p1.nome, genero:ga, calc:k.p1, respostas:p1.dados && p1.dados.respostas }, b:{ nome:p2.nome, genero:gb, calc:k.p2, respostas:p2.dados && p2.dados.respostas }, k, data:String(data.concluido_em || '').slice(0, 10), terapeuta:true });
+    tcLigarTeia(area, tcSeries2(k)); dvLigar(area);
+    area.querySelector('[data-dv-ga]').addEventListener('change', e => desenharDvC(e.target.value, gb));
+    area.querySelector('[data-dv-gb]').addEventListener('change', e => desenharDvC(ga, e.target.value));
+  };
+  desenharDvC(g1, g2);
   $('#tc-copiar-resumo-c').addEventListener('click', async e => { try{ await navigator.clipboard.writeText(tcResumoTexto(p1.nome, k.p1) + '\n\n' + tcResumoTexto(p2.nome, k.p2)); e.target.textContent = 'Copiado!'; }catch(err){ e.target.textContent = 'Não consegui'; } setTimeout(() => { e.target.textContent = 'Copiar o resumo do casal'; }, 1800); });
-  tcLigarTeia($('#tc-detalhe-conteudo'), tcSeries2(k));
 }
 
-/* ---- 9. LINK DO CLIENTE: ?t=CÓDIGO abre a capa do Traços de Caráter ---- */
+/* ---- 9. LINK DO CLIENTE: ?t=CÓDIGO abre a capa do Teste de Caráter Comportamental ---- */
 (function(){
   try{
     const t = (new URLSearchParams(location.search).get('t') || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 9);

@@ -3487,15 +3487,15 @@ async function tcDetalheCasal(codigo){
     if(t) tcAbrirCapa(t);
   }catch(e){}
 })();
-/* página inicial fala dos dois testes (no domínio, só para quem tem o Traços de Caráter liberado);
-   a versão de vendas (individual e casal) liga com dados.capa_vendas */
+/* página inicial: fala dos testes que a terapeuta tem e vira página de vendas
+   (só Travas, só Traços de Caráter ou os dois; desliga com dados.capa_vendas = false) */
 (function(){
   const d = window.__T && window.__T.dados, lista = d && Array.isArray(d.testes) ? d.testes : null;
   const tracos = !d || (lista && lista.indexOf('tracos') > -1), travas = !lista || lista.indexOf('travas') > -1;
   if(tracos && travas) dvCapaDoisTestes();
   if(tracos && !travas) dvSoTracos();                  // comprou só o Teste de Traços de Caráter
   if(!tracos && !travas) dvSemTeste();                 // nenhum teste ativo (ex.: assinatura suspensa)
-  if(tracos && travas && (!d || d.capa_vendas)) dvCapaVendas();
+  if((!d || d.capa_vendas !== false) && (tracos || travas)) dvCapaVendas(tracos && travas ? 'ambos' : travas ? 'travas' : 'tracos');   // capa de vendas para todas
 })();
 </script>
 <div id="ap-overlay"></div>

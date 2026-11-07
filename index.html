@@ -3490,9 +3490,12 @@ async function tcDetalheCasal(codigo){
 /* página inicial fala dos dois testes (no domínio, só para quem tem o Traços de Caráter liberado);
    a versão de vendas (individual e casal) liga com dados.capa_vendas */
 (function(){
-  const d = window.__T && window.__T.dados, tracos = !d || (Array.isArray(d.testes) && d.testes.indexOf('tracos') > -1);
-  if(tracos) dvCapaDoisTestes();
-  if(tracos && (!d || d.capa_vendas)) dvCapaVendas();
+  const d = window.__T && window.__T.dados, lista = d && Array.isArray(d.testes) ? d.testes : null;
+  const tracos = !d || (lista && lista.indexOf('tracos') > -1), travas = !lista || lista.indexOf('travas') > -1;
+  if(tracos && travas) dvCapaDoisTestes();
+  if(tracos && !travas) dvSoTracos();                  // comprou só o Teste de Traços de Caráter
+  if(!tracos && !travas) dvSemTeste();                 // nenhum teste ativo (ex.: assinatura suspensa)
+  if(tracos && travas && (!d || d.capa_vendas)) dvCapaVendas();
 })();
 </script>
 <div id="ap-overlay"></div>
